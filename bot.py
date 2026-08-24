@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 
-# --- خادم Flask المساعد لمنع نوم الخدمة في Render ---
+# --- خادم Flask المساعد لمنع نوم الخدمة في Render  ---
 web_app = Flask(__name__)
 
 @web_app.route('/')
