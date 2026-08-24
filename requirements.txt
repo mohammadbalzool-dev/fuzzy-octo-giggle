@@ -1,4 +1,4 @@
-flask
+python-telegram-bot
 requests
 pillow
-python-telegram-bot
+flask
