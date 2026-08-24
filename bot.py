@@ -8,47 +8,35 @@ from PIL import Image, ImageDraw
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 
-# --- خادم Flask المساعد لمنع نوم الخدمة في Render  ---
+# خادم Flask لإبقاء الخدمة تعمل على Render
 web_app = Flask(__name__)
 
 @web_app.route('/')
 def health_check():
-    return "Bot is alive and running!", 200
+    return "Bot Server Active", 200
 
 def run_web_server():
     port = int(os.environ.get("PORT", 10000))
     web_app.run(host="0.0.0.0", port=port)
 
-# --- إعدادات تسجيل الأخطاء (Logging) ---
 logging.basicConfig(level=logging.INFO)
-
-# ==========================================
-# قائمة المفاتيح والروابط (مع نظام التدوير)
-# ==========================================
 
 TELEGRAM_BOT_TOKEN = "GlILJ9TvCQz8V5Kry0vH4sY9Qif4yUtgN25AG-CUInLSUpv5Ky9j1g"
 
-# 1. قائمة مفاتيح GSMA (Client ID & Secret)
 GSMA_KEYS = [
     {
         "client_id": "client_7dca1ef711321e069120dcf021407e0d",
         "client_secret": "c89abb932ee39541ebf9d5a7c28fbc7b77b19301445c9e97a88cd6624711eab5"
-    },
+    }
 ]
 
-# 2. قائمة الروابط والـ Workers الاحتياطية
 WORKER_URLS = [
-    "https://holy-band-4866.mohammad-b-alzool.workers.dev",
+    "https://holy-band-4866.mohammad-b-alzool.workers.dev"
 ]
 
 GSMA_TOKEN_URL = "https://open-gateway.gsma.com/sandbox/oauth2/token"
 
-# ==========================================
-# دوال جلب البيانات وتدوير المفاتيح
-# ==========================================
-
 def get_gsma_token():
-    """يحاول الحصول على Token عبر تجربة المفاتيح المتاحة بالتتابع"""
     for key_pair in GSMA_KEYS:
         payload = {
             "grant_type": "client_credentials",
@@ -59,17 +47,12 @@ def get_gsma_token():
         try:
             res = requests.post(GSMA_TOKEN_URL, data=payload, headers=headers, timeout=8)
             if res.status_code == 200:
-                token = res.json().get("access_token")
-                if token:
-                    return token
+                return res.json().get("access_token")
         except Exception as e:
-            logging.error(f"GSMA Auth error with ID {key_pair['client_id'][:8]}: {e}")
-            continue
-    logging.error("All GSMA Keys failed.")
+            logging.error(f"GSMA Auth Error: {e}")
     return None
 
 def fetch_device_data(tac):
-    """جلب بيانات الجهاز وتدوير السيرفرات عند الفشل"""
     token = get_gsma_token()
     if not token:
         return None
@@ -85,13 +68,10 @@ def fetch_device_data(tac):
             if res.status_code == 200:
                 return res.json()
         except Exception as e:
-            logging.error(f"Failed connecting to worker endpoint {worker_url}: {e}")
-            continue
-            
+            logging.error(f"Worker Error: {e}")
     return None
 
 def generate_report_image(tac, data):
-    """توليد تقرير بصري بصيغة صورة"""
     img = Image.new('RGB', (600, 400), color=(245, 247, 250))
     draw = ImageDraw.Draw(img)
     
@@ -122,12 +102,8 @@ def generate_report_image(tac, data):
     bio.seek(0)
     return bio
 
-# ==========================================
-# معالجات أوامر تلغرام (Telegram Handlers)
-# ==========================================
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("أهلاً بك! أرسل أول 8 أرقام (TAC) أو رقم الـ IMEI (15 رقم) لاستخراج التقرير الشامل.")
+    await update.message.reply_text("أهلاً بك! أرسل أول 8 أرقام (TAC) أو رقم الـ IMEI لاستخراج التقرير الشامل.")
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.strip()
@@ -141,20 +117,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         data = fetch_device_data(tac)
         image_bytes = generate_report_image(tac, data)
-
         await update.message.reply_photo(photo=image_bytes, caption=f"تم استخراج التقرير بنجاح للـ TAC: {tac}")
     except Exception as err:
         logging.error(f"Error handling message: {err}")
         await update.message.reply_text("حدث خطأ أثناء معالجة الطلب، يرجى المحاولة لاحقاً.")
 
 if __name__ == '__main__':
-    # 1. تشغيل خادم Flask المساعد في Thread منفصل
     threading.Thread(target=run_web_server, daemon=True).start()
     
-    # 2. تشغيل بوت تلغرام
     app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     
-    print("Bot status: ACTIVE with Key Rotation Enabled...")
     app.run_polling()
