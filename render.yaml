@@ -3,5 +3,5 @@ services:
     name: zimei-bot
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: python bot.py
+    startCommand: pytho  /bot.py
  
