@@ -1,4 +1,4 @@
-import io
+بقimport io
 import os
 import logging
 import threading
@@ -122,11 +122,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logging.error(f"Error handling message: {err}")
         await update.message.reply_text("حدث خطأ أثناء معالجة الطلب، يرجى المحاولة لاحقاً.")
 
+)
 if __name__ == '__main__':
+    # تشغيل سيرفر الويب المساعد
     threading.Thread(target=run_web_server, daemon=True).start()
     
+    # بناء تطبيق تلغرام
     app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     
-    app.run_polling()
+    # تشغيل الـ Polling معDrop Pending Updates لمنع التعليق
+    print("Bot status: ACTIVE...")
+    app.run_polling(drop_pending_updates=True)
