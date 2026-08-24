@@ -1,2 +1,4 @@
-# fuzzy-octo-giggle
-IMEI / SN
+python-telegram-bot
+requests
+pillow
+flask
